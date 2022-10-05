@@ -175,7 +175,7 @@ func (l *Lexer) readNumber() *num {
 		value := 0
 		for {
 			if isDigit(l.peek) {
-				value = value*10 + int(l.peek)
+				value = value*10 + int(l.peek-'0')
 				l.peek = l.nextInputChar()
 			} else {
 				// set peek to space
