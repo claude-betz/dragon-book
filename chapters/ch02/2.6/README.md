@@ -63,5 +63,5 @@ We use a string table to hold character string. This solves two problems:
 1. Skip white space.
 2. handle numbers.
 3. handle reserved words and indentifiers.
-4. if code reaches here tread peek as token.
+4. if code reaches here return peek as token.
 5. set peek to blank and return.
