@@ -19,6 +19,7 @@ const (
 	tagInt  = 258
 	tagChar = 259
 	tagBool = 260
+	tagTerm = 261
 )
 
 type Token interface {
@@ -33,7 +34,7 @@ type char struct {
 
 func NewChar(character byte) *char {
 	return &char{
-		Tag:   tagChar,
+		Tag:   tagTerm,
 		Value: character,
 	}
 }
@@ -66,6 +67,10 @@ func (w *word) value() string {
 	return w.Lexeme
 }
 
+var (
+	complete = false
+)
+
 type Lexer struct {
 	LineNum int
 	buffer  *bytes.Buffer
@@ -76,7 +81,8 @@ type Lexer struct {
 func (l *Lexer) nextInputChar() byte {
 	c, err := l.buffer.ReadByte()
 	if err != nil {
-		fmt.Println("end of buffer")
+		// fmt.Println("end of buffer")
+		complete = true
 	}
 
 	return c
@@ -122,17 +128,21 @@ func (l *Lexer) reserve(w *word) {
 }
 
 func (l *Lexer) Scan() Token {
-	// skip white-space
-	l.skipWhiteSpace()
+	if complete == false {
+		// skip white-space
+		l.skipWhiteSpace()
 
-	// read word
-	word := l.readLexeme()
-	if word != nil {
-		return word
+		// read word
+		word := l.readLexeme()
+		if word != nil {
+			return word
+		}
+
+		// read character
+		return l.readCharacter()
 	}
 
-	// read character
-	return l.readCharacter()
+	return nil
 }
 func (l *Lexer) skipWhiteSpace() {
 	for {
@@ -149,7 +159,7 @@ func (l *Lexer) skipWhiteSpace() {
 	}
 }
 
-func (l *Lexer) readLexeme() *word {
+func (l *Lexer) readLexeme() Token {
 	if isChar(l.peek) {
 		// new buffer to build string -> might want to use string.Builder for efficiency.
 		buf := bytes.Buffer{}
@@ -179,10 +189,7 @@ func (l *Lexer) readLexeme() *word {
 		storedWord := l.words[lexeme]
 		if storedWord != nil {
 			// if exists return word
-			return &word{
-				Tag:    tagId,
-				Lexeme: storedWord.value(),
-			}
+			return storedWord
 		} else {
 			// add lexeme to words
 			newWord := newWord(lexeme)

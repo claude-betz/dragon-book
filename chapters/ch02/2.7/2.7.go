@@ -69,6 +69,15 @@ type Translator struct {
 	lexer            *Lexer
 }
 
+func NewTranslator(lexer *Lexer) *Translator {
+	t := &Translator{
+		lexer: lexer,
+	}
+
+	t.lookahead = lexer.Scan()
+	return t
+}
+
 func (t *Translator) program() {
 	t.top = nil
 	t.block()
@@ -79,61 +88,98 @@ func (t *Translator) block() {
 
 	saved := t.top
 	t.top = NewEnv(t.top)
-	fmt.Printf("{")
+	fmt.Print("{ ")
 
 	t.decl()
 
-	t.stmt()
+	t.stmts()
 
 	t.matchCharacter('}')
 
 	t.top = saved
-	fmt.Printf("}")
+	fmt.Print("} ")
 }
 
 func (t *Translator) decl() {
 	// match type
-	if t.lookahead.tag() == tagBool|tagInt|tagChar {
+	if t.lookahead.tag() == tagBool || t.lookahead.tag() == tagInt || t.lookahead.tag() == tagChar {
+		// store type
+		s := NewSymbol(t.lookahead)
+
+		// get id
+		t.lookahead = t.lexer.Scan()
+
+		// store type against id
+		t.top.put(t.lookahead.value(), s)
+
 		// match id
 		t.matchId()
+
 	} else {
-		fmt.Println("expected type")
+		return
 	}
 	t.matchCharacter(';')
-
-	s := NewSymbol(t.lookahead)
-	t.top.put(t.lookahead.value(), s)
 
 	t.decl()
 }
 
+func (t *Translator) stmts() {
+	if string(t.lookahead.value()) == "}" {
+		return
+	}
+
+	t.stmt()
+
+	t.stmts()
+}
+
+func (t *Translator) stmt() {
+	// block
+	if string(t.lookahead.value()) == "{" {
+		t.block()
+	} else {
+		// factor
+		t.factor()
+
+		t.matchCharacter(';')
+	}
+}
+
+func (t *Translator) factor() {
+	t.id()
+
+	fmt.Print("; ")
+}
+
+func (t *Translator) id() {
+	s := t.top.get(t.lookahead.value())
+
+	fmt.Print(t.lookahead.value())
+	fmt.Print(":")
+	fmt.Print(s.sType)
+
+	t.lookahead = t.lexer.Scan()
+}
+
 func (t *Translator) matchId() {
 	if t.lookahead.tag() == tagId {
-		// do nothing
+		t.lookahead = t.lexer.Scan()
+
+		if t.lookahead == nil {
+			return
+		}
 	} else {
 		fmt.Println("expected lexeme")
 	}
 }
 
-func (t *Translator) stmt() {
-	token := t.lookahead
-
-	// block
-	if token.value() == "{" {
-		t.block()
-	}
-
-	t.matchId()
-
-	s := t.top.get(token.value())
-	print(token.value())
-	print(":")
-	print(s.sType)
-}
-
 func (t *Translator) matchCharacter(char byte) {
-	if t.lookahead.tag() == tagChar && string(char) == t.lookahead.value() {
-		t.lookaheadPointer++
+	if t.lookahead.tag() == tagTerm && string(char) == t.lookahead.value() {
+		t.lookahead = t.lexer.Scan()
+
+		if t.lookahead == nil {
+			return
+		}
 	} else {
 		fmt.Println("syntax error matching character")
 	}
