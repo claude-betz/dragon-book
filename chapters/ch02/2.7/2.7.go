@@ -139,16 +139,10 @@ func (t *Translator) stmt() {
 		t.block()
 	} else {
 		// factor
-		t.factor()
+		t.id()
 
 		t.matchCharacter(';')
 	}
-}
-
-func (t *Translator) factor() {
-	t.id()
-
-	fmt.Print("; ")
 }
 
 func (t *Translator) id() {
@@ -157,6 +151,7 @@ func (t *Translator) id() {
 	fmt.Print(t.lookahead.value())
 	fmt.Print(":")
 	fmt.Print(s.sType)
+	fmt.Print("; ")
 
 	t.lookahead = t.lexer.Scan()
 }
