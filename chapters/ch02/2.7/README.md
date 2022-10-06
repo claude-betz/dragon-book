@@ -54,13 +54,88 @@ block ->    '{'             {
 decls   ->  decls decl
         |   ϵ
 
-decl    ->  type id;             {
+decl    ->  type id;        {
                                 s = new Symbol();
                                 s.type = type.lexeme
                                 top.put(id.lexeme, s);
                             }
 
 stmts   ->  stmts stmt
+        |   ϵ
+
+stmt    ->  block
+        |   factor;         {   
+                                print(';')
+                            }
+
+factor  ->  id              {
+                                s = top.get(id.lexeme);
+                                print(id.lexeme);
+                                print(':');
+                                print(s.type)  
+                            }
+```
+
+Notice that the non-terminals `decls` and `stmts` are left-recursive which we already know can cause infinite loops when implementing a recursive-descent top down parser.
+
+To remedy this, we rewrite the above translation scheme to eliminate using what we learned in section 2.5
+
+```
+decls   ->  ϵ       R
+R       ->  decl    R
+        |   ϵ
+```
+
+```
+stmts   ->  ϵ       P
+P       ->  stmt    P
+        |   ϵ
+```
+
+We can simplify by substituting (ignoring the epsilon terminal)
+- R into decls
+- P into stmts
+
+```
+decls   ->  decl    R
+        |   ϵ
+```
+
+```
+stmts   ->  stmt    P
+        |   ϵ
+```
+
+The translation scheme we will implement in code becomes the following:
+```
+program ->  block           {   
+                                top = null;
+                            }
+
+block ->    '{'             {
+                                saved = top; 
+                                top = new Env(top);
+                                print('{');
+                            } 
+
+            decls stmts '}' {
+                                top = saved;
+                                print('}');
+                            }
+
+decls   ->  decl    R       {
+        |   ϵ                   s = new Symbol();
+                                s.type = type.lexeme
+                                top.put(id.lexeme, s);
+                            }
+
+decl    ->  type id;        {
+                                s = new Symbol();
+                                s.type = type.lexeme
+                                top.put(id.lexeme, s);
+                            }
+
+stmts   ->  stmt    P
         |   ϵ
 
 stmt    ->  block
